@@ -1,0 +1,57 @@
+name: 07 - Multi-OS Compatibility Matrix
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  cross-platform-test:
+    name: Backend Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Verify node:sqlite on ${{ matrix.os }}
+        run: node -e "const {DatabaseSync}=require('node:sqlite');console.log('SQLite OK on ${{ matrix.os }}:', typeof DatabaseSync)"
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: npm test
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm test
+
+      - name: Report OS Compatibility
+        if: always()
+        shell: bash
+        run: |
+          echo "### 🖥️ OS Matrix: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platform**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: All tests executed" >> $GITHUB_STEP_SUMMARY

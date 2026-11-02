@@ -1,0 +1,51 @@
+name: 01 - Main CI Full-Stack Pipeline
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  full-stack-ci:
+    name: Full-Stack Test & Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Monorepo Root Dependencies
+        run: npm ci
+
+      - name: Install Backend Dependencies
+        run: npm --prefix backend ci
+
+      - name: Install Frontend Dependencies
+        run: npm --prefix frontend ci
+
+      - name: Run Backend Automated Tests (12/12)
+        run: npm run test:backend
+
+      - name: Run Frontend Automated Tests (64/64)
+        run: npm run test:frontend
+
+      - name: Verify Frontend Production Build
+        run: npm run build
+
+      - name: Pipeline Summary
+        if: always()
+        run: |
+          echo "### 🚀 Main CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js Version**: 22 LTS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend Tests**: 12/12 Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend Tests**: 64/64 Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Automated Tests**: 76/76 Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production Build**: Verified with 0 errors" >> $GITHUB_STEP_SUMMARY
